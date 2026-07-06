@@ -9,7 +9,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/vergissberlin/pingorb/internal/config"
@@ -83,7 +83,7 @@ func runDashboard(cmd *cobra.Command, args []string) error {
 	defer monitor.StopAll()
 
 	m := tui.New(cfg, monitor, privileged, interval)
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	p := tea.NewProgram(m)
 	_, err = p.Run()
 	return err
 }
