@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/vergissberlin/pingorb/internal/config"
 	"github.com/vergissberlin/pingorb/internal/pinger"
@@ -74,7 +74,7 @@ func New(cfg *config.Config, monitor *pinger.Monitor, privileged bool, interval 
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(tickCmd(), tea.WindowSize())
+	return tea.Batch(tickCmd(), tea.RequestWindowSize)
 }
 
 type tickMsg time.Time
@@ -94,7 +94,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.stats = m.monitor.Snapshot()
 		return m, tickCmd()
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch m.mode {
 		case modeForm:
 			return m.updateForm(msg)
@@ -119,7 +119,7 @@ func (m *Model) recalcMap() {
 	m.mapGrid = worldmap.Generate(m.mapW, m.mapH)
 }
 
-func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) updateList(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "ctrl+c":
 		m.monitor.StopAll()
@@ -164,7 +164,7 @@ func (m Model) selected() (config.Server, bool) {
 	return m.servers[m.cursor], true
 }
 
-func (m Model) updateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) updateConfirm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "enter":
 		m.monitor.Remove(m.confirmName)
@@ -183,7 +183,7 @@ func (m Model) updateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) updateForm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
 		m.mode = modeList
@@ -232,7 +232,10 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m Model) View() string {
+func (m Model) View() tea.View {
+	var v tea.View
+	v.AltScreen = true
+
 	header := m.renderHeader()
 	footer := helpStyle.Render(" a add · e edit · d delete · ↑/k ↓/j select · q quit")
 
@@ -242,16 +245,17 @@ func (m Model) View() string {
 		m.renderMap(),
 	)
 
-	view := header + "\n" + body + "\n" + footer
+	content := header + "\n" + body + "\n" + footer
 
 	switch m.mode {
 	case modeForm:
-		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, m.frm.view())
+		content = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, m.frm.view())
 	case modeConfirmDelete:
-		content := fmt.Sprintf("Delete server %q?\n\n", m.confirmName) + helpStyle.Render("y confirm · n/esc cancel")
-		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, modalStyle.Render(content))
+		content = fmt.Sprintf("Delete server %q?\n\n", m.confirmName) + helpStyle.Render("y confirm · n/esc cancel")
+		content = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, modalStyle.Render(content))
 	}
-	return view
+	v.SetContent(content)
+	return v
 }
 
 func (m Model) renderHeader() string {

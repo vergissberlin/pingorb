@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/vergissberlin/pingorb/internal/geoip"
 )
@@ -91,7 +91,7 @@ func (f form) update(msg tea.Msg) (form, tea.Cmd) {
 		}
 		return f, nil
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "tab", "down":
 			f.focusField((f.focus + 1) % fieldCount)
