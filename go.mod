@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	github.com/charmbracelet/bubbles v1.0.0
-	github.com/charmbracelet/bubbletea v1.3.10
+	github.com/charmbracelet/bubbletea/v2 v2.0.8
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/prometheus-community/pro-bing v0.9.1
 	github.com/spf13/cobra v1.10.2
