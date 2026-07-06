@@ -70,30 +70,30 @@ pingorb
 
 **Keybindings:**
 
-| Key             | Action                    |
-| --------------- | ------------------------- |
+| Key              | Action                     |
+|------------------|----------------------------|
 | `↑`/`k`, `↓`/`j` | Move selection             |
 | `a`              | Add a server               |
 | `e`              | Edit the selected server   |
 | `d`/`x`          | Delete the selected server |
-| `q`, `ctrl+c`    | Quit                        |
+| `q`, `ctrl+c`    | Quit                       |
 
 Inside the add/edit form:
 
-| Key                | Action                                  |
-| ------------------ | ---------------------------------------- |
-| `tab`/`shift+tab`   | Move between fields                      |
-| `ctrl+g`            | Auto-resolve lat/lon from the host field |
-| `enter`             | Save                                      |
-| `esc`               | Cancel                                    |
+| Key               | Action                                   |
+|-------------------|------------------------------------------|
+| `tab`/`shift+tab` | Move between fields                      |
+| `ctrl+g`          | Auto-resolve lat/lon from the host field |
+| `enter`           | Save                                     |
+| `esc`             | Cancel                                   |
 
 ### Flags
 
-| Flag           | Default            | Description                                             |
-| -------------- | ------------------- | -------------------------------------------------------- |
-| `--config`     | OS config dir        | Path to `servers.yaml`                                    |
-| `--interval`   | `1s`                  | Ping interval                                             |
-| `--privileged` | `false`               | Use raw ICMP sockets instead of unprivileged UDP-based ICMP (needs root/`cap_net_raw`) |
+| Flag           | Default       | Description                                                                            |
+|----------------|---------------|----------------------------------------------------------------------------------------|
+| `--config`     | OS config dir | Path to `servers.yaml`                                                                 |
+| `--interval`   | `1s`          | Ping interval                                                                          |
+| `--privileged` | `false`       | Use raw ICMP sockets instead of unprivileged UDP-based ICMP (needs root/`cap_net_raw`) |
 
 ## Try it with the example fleet
 
