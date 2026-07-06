@@ -24,11 +24,20 @@ var (
 	interval   time.Duration
 )
 
+// Set via -ldflags at build time (see .goreleaser.yaml); left as "dev" for
+// plain `go build`/`go run`.
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
 	root := &cobra.Command{
-		Use:   "pingorb",
-		Short: "Live ping status for your servers on a terminal world map",
-		RunE:  runDashboard,
+		Use:     "pingorb",
+		Short:   "Live ping status for your servers on a terminal world map",
+		Version: fmt.Sprintf("%s (commit %s, built %s)", version, commit, date),
+		RunE:    runDashboard,
 	}
 	root.PersistentFlags().StringVar(&configPath, "config", "", "path to servers.yaml (default: OS config dir)")
 	root.PersistentFlags().BoolVar(&privileged, "privileged", false, "use raw ICMP sockets (requires root/cap_net_raw)")

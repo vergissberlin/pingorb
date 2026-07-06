@@ -22,7 +22,11 @@ from the CLI (`pingorb add`) or interactively from within the dashboard.
 
 ## Install
 
-Requires Go 1.26+.
+Download a prebuilt binary for macOS, Linux, or Windows from the
+[Releases page](https://github.com/vergissberlin/pingorb/releases) and put
+it on your `PATH`.
+
+Or, with Go 1.26+:
 
 ```bash
 go install github.com/vergissberlin/pingorb/cmd/pingorb@latest
@@ -123,6 +127,26 @@ servers:
   survey-accurate coastlines.
 - **The dashboard** — built with [Bubble Tea](https://github.com/charmbracelet/bubbletea)
   and [Lip Gloss](https://github.com/charmbracelet/lipgloss).
+
+## Releases
+
+Releases are fully automated via [release-please](https://github.com/googleapis/release-please)
+and [GoReleaser](https://goreleaser.com), wired up in
+[`.github/workflows/release.yml`](.github/workflows/release.yml):
+
+1. Every push to `main` runs release-please, which maintains a standing
+   "release PR" with the changelog inferred from
+   [Conventional Commits](https://www.conventionalcommits.org/).
+2. Merging that PR makes release-please tag the release and publish a
+   GitHub Release with the generated changelog.
+3. That triggers GoReleaser, which cross-compiles `pingorb` for
+   linux/darwin (amd64 + arm64) and windows (amd64), and attaches the
+   resulting archives and a `checksums.txt` to the same release.
+
+So: use `feat:`/`fix:`/`feat!:` (etc.) commit prefixes on `main`, merge the
+release PR when you're ready to ship, and binaries show up on the
+[Releases page](https://github.com/vergissberlin/pingorb/releases)
+automatically — no manual tagging or building required.
 
 ## License
 

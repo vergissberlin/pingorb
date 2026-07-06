@@ -1,0 +1,52 @@
+# GoReleaser config: cross-compiles pingorb for macOS, Linux, and Windows
+# and attaches the archives to the GitHub Release that release-please
+# already created for the tag (see .github/workflows/release.yml).
+version: 2
+
+project_name: pingorb
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: pingorb
+    main: ./cmd/pingorb
+    binary: pingorb
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  disable: true # release-please already writes the changelog/release notes
+
+release:
+  mode: keep-existing # keep release-please's title & release notes, just attach binaries
