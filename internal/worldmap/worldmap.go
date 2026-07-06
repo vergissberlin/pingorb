@@ -1,24 +1,55 @@
-// Package worldmap renders a coarse equirectangular world map onto a
-// character grid and projects lat/lon coordinates onto that grid so callers
-// can overlay markers.
+// Package worldmap renders an equirectangular world map onto a character
+// grid, using Unicode Braille sub-pixels for extra detail, and projects
+// lat/lon coordinates onto that grid so callers can overlay markers.
 package worldmap
 
 import "math/rand"
 
-// dotDensity is the fraction of "land" cells that get a stipple dot,
+// point is a (longitude, latitude) pair in degrees.
+type point struct{ lon, lat float64 }
+
+// ring is a closed polygon boundary: either a landmass's outer coastline or
+// a hole in it (e.g. an inland sea).
+type ring []point
+
+// landPolygon is one contiguous piece of land: rings[0] is its outer
+// coastline, and any further rings are holes cut out of it.
+type landPolygon struct {
+	rings []ring
+}
+
+// dotDensity is the fraction of "land" sub-pixels that get a stipple dot,
 // producing the sparse textured look of the reference dashboard instead of
 // solid filled continents.
-const dotDensity = 0.4
+const dotDensity = 0.42
 
 // mapSeed keeps the stipple pattern stable across renders/resizes so the
 // map doesn't visibly "shimmer" every refresh tick.
 const mapSeed = 42
 
-// Grid is a rendered map: Land[row][col] is true where a land stipple dot
-// should be drawn.
+// Braille characters pack a 2x4 grid of sub-pixels into a single terminal
+// cell, giving 8x the effective resolution of a plain "one dot per
+// character" map at no extra screen space.
+const (
+	brailleCols = 2
+	brailleRows = 4
+	brailleBase = 0x2800
+)
+
+// brailleBit maps a sub-pixel's (col, row) position within its character
+// cell to the bit it sets in the Braille codepoint.
+var brailleBit = [brailleRows][brailleCols]byte{
+	{0x01, 0x08},
+	{0x02, 0x10},
+	{0x04, 0x20},
+	{0x40, 0x80},
+}
+
+// Grid is a rendered map: Cells[row][col] is the character to draw for that
+// terminal cell (a Braille glyph, or a space over open ocean).
 type Grid struct {
 	Width, Height int
-	Land          [][]bool
+	Cells         [][]rune
 }
 
 // Generate builds a Grid of the given character dimensions.
@@ -30,16 +61,37 @@ func Generate(width, height int) *Grid {
 		height = 2
 	}
 
-	g := &Grid{Width: width, Height: height, Land: make([][]bool, height)}
+	subW, subH := width*brailleCols, height*brailleRows
+	sub := make([][]bool, subH)
 	rng := rand.New(rand.NewSource(mapSeed))
 
-	for row := 0; row < height; row++ {
-		g.Land[row] = make([]bool, width)
-		lat := rowToLat(row, height)
-		for col := 0; col < width; col++ {
-			lon := colToLon(col, width)
+	for subRow := 0; subRow < subH; subRow++ {
+		sub[subRow] = make([]bool, subW)
+		lat := rowToLat(subRow, subH)
+		for subCol := 0; subCol < subW; subCol++ {
+			lon := colToLon(subCol, subW)
 			if isLand(lon, lat) && rng.Float64() < dotDensity {
-				g.Land[row][col] = true
+				sub[subRow][subCol] = true
+			}
+		}
+	}
+
+	g := &Grid{Width: width, Height: height, Cells: make([][]rune, height)}
+	for row := 0; row < height; row++ {
+		g.Cells[row] = make([]rune, width)
+		for col := 0; col < width; col++ {
+			var bits byte
+			for dy := 0; dy < brailleRows; dy++ {
+				for dx := 0; dx < brailleCols; dx++ {
+					if sub[row*brailleRows+dy][col*brailleCols+dx] {
+						bits |= brailleBit[dy][dx]
+					}
+				}
+			}
+			if bits == 0 {
+				g.Cells[row][col] = ' '
+			} else {
+				g.Cells[row][col] = rune(brailleBase + int(bits))
 			}
 		}
 	}
@@ -89,20 +141,34 @@ func rowToLat(row, height int) float64 {
 }
 
 func isLand(lon, lat float64) bool {
-	for _, poly := range landmasses {
-		if poly.contains(lon, lat) {
+	for _, lp := range landPolygons {
+		if lp.contains(lon, lat) {
 			return true
 		}
 	}
 	return false
 }
 
+// contains reports whether (lon, lat) falls inside this landmass: inside
+// its outer ring and outside every hole.
+func (lp landPolygon) contains(lon, lat float64) bool {
+	if len(lp.rings) == 0 || !lp.rings[0].contains(lon, lat) {
+		return false
+	}
+	for _, hole := range lp.rings[1:] {
+		if hole.contains(lon, lat) {
+			return false
+		}
+	}
+	return true
+}
+
 // contains implements a standard ray-casting point-in-polygon test.
-func (p polygon) contains(lon, lat float64) bool {
+func (r ring) contains(lon, lat float64) bool {
 	inside := false
-	n := len(p)
+	n := len(r)
 	for i, j := 0, n-1; i < n; j, i = i, i+1 {
-		pi, pj := p[i], p[j]
+		pi, pj := r[i], r[j]
 		if (pi.lat > lat) != (pj.lat > lat) {
 			lonAtLat := (pj.lon-pi.lon)*(lat-pi.lat)/(pj.lat-pi.lat) + pi.lon
 			if lon < lonAtLat {

@@ -95,6 +95,28 @@ Inside the add/edit form:
 | `--interval`   | `1s`                  | Ping interval                                             |
 | `--privileged` | `false`               | Use raw ICMP sockets instead of unprivileged UDP-based ICMP (needs root/`cap_net_raw`) |
 
+## Try it with the example fleet
+
+[`examples/servers.yaml`](examples/servers.yaml) ships with a small
+worldwide fleet - one host per populated continent, plus a couple of
+well-known public DNS resolvers - so the map has something to show before
+you've added your own servers:
+
+```bash
+pingorb --config examples/servers.yaml
+```
+
+Once you like what you see, make it your default config:
+
+```bash
+mkdir -p ~/.config/pingorb   # macOS: ~/Library/Application Support/pingorb
+cp examples/servers.yaml ~/.config/pingorb/servers.yaml
+pingorb
+```
+
+Then swap the example hosts for your own with `pingorb add` / `pingorb
+remove`, or by editing the file directly.
+
 ## Configuration
 
 By default, the config lives at `servers.yaml` in your OS config directory

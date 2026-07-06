@@ -18,6 +18,11 @@ import (
 
 const tickInterval = 500 * time.Millisecond
 
+// flashWindow is how long a server's row/marker "flashes" (reverse video)
+// after a fresh ping reply comes in, so updates are visible even though the
+// dashboard otherwise looks static between pings.
+const flashWindow = 700 * time.Millisecond
+
 type mode int
 
 const (
@@ -275,6 +280,9 @@ func (m Model) renderList() string {
 		if ok {
 			rttMS := float64(st.LastRTT) / float64(time.Millisecond)
 			style := statusStyle(st.Alive, rttMS)
+			if time.Since(st.Updated) < flashWindow {
+				style = style.Reverse(true) // flash on fresh data
+			}
 			dot = style.Render("●")
 			if st.Alive {
 				latency = style.Render(fmt.Sprintf("%5.1fms", rttMS))
@@ -318,6 +326,9 @@ func (m Model) renderMap() string {
 		style := dimStyle
 		if st, ok := m.stats[s.Name]; ok {
 			style = statusStyle(st.Alive, float64(st.LastRTT)/float64(time.Millisecond))
+			if time.Since(st.Updated) < flashWindow {
+				style = style.Reverse(true) // flash on fresh data
+			}
 		}
 		markers[[2]int{row, col}] = marker{style: style}
 	}
@@ -329,11 +340,7 @@ func (m Model) renderMap() string {
 				b.WriteString(mk.style.Render("●"))
 				continue
 			}
-			if grid.Land[row][col] {
-				b.WriteString(dimStyle.Render("."))
-				continue
-			}
-			b.WriteString(" ")
+			b.WriteString(dimStyle.Render(string(grid.Cells[row][col])))
 		}
 		if row < grid.Height-1 {
 			b.WriteString("\n")
