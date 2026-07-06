@@ -1,31 +1,22 @@
 // Package worldmap renders an equirectangular world map onto a character
 // grid, using Unicode Braille sub-pixels for extra detail, and projects
 // lat/lon coordinates onto that grid so callers can overlay markers.
+//
+// The rendering technique (Braille sub-pixel canvas, coastlines drawn as
+// plotted line segments rather than filled polygons) follows the approach
+// used by satnogs-monitor (https://github.com/wose/satnogs-monitor) and its
+// tui-rs Canvas widget.
 package worldmap
 
-import "math/rand"
+import "math"
 
 // point is a (longitude, latitude) pair in degrees.
 type point struct{ lon, lat float64 }
 
-// ring is a closed polygon boundary: either a landmass's outer coastline or
-// a hole in it (e.g. an inland sea).
+// ring is a closed coastline loop: a continent or island outline, or the
+// shoreline of a large inland body of water. It's drawn as an outline, not
+// filled, so there's no distinction between "outer" and "hole" rings.
 type ring []point
-
-// landPolygon is one contiguous piece of land: rings[0] is its outer
-// coastline, and any further rings are holes cut out of it.
-type landPolygon struct {
-	rings []ring
-}
-
-// dotDensity is the fraction of "land" sub-pixels that get a stipple dot,
-// producing the sparse textured look of the reference dashboard instead of
-// solid filled continents.
-const dotDensity = 0.42
-
-// mapSeed keeps the stipple pattern stable across renders/resizes so the
-// map doesn't visibly "shimmer" every refresh tick.
-const mapSeed = 42
 
 // Braille characters pack a 2x4 grid of sub-pixels into a single terminal
 // cell, giving 8x the effective resolution of a plain "one dot per
@@ -52,7 +43,9 @@ type Grid struct {
 	Cells         [][]rune
 }
 
-// Generate builds a Grid of the given character dimensions.
+// Generate builds a Grid of the given character dimensions by plotting
+// every coastline as a sequence of line segments onto a Braille sub-pixel
+// buffer, then packing that buffer into one rune per character cell.
 func Generate(width, height int) *Grid {
 	if width < 2 {
 		width = 2
@@ -63,16 +56,15 @@ func Generate(width, height int) *Grid {
 
 	subW, subH := width*brailleCols, height*brailleRows
 	sub := make([][]bool, subH)
-	rng := rand.New(rand.NewSource(mapSeed))
+	for i := range sub {
+		sub[i] = make([]bool, subW)
+	}
 
-	for subRow := 0; subRow < subH; subRow++ {
-		sub[subRow] = make([]bool, subW)
-		lat := rowToLat(subRow, subH)
-		for subCol := 0; subCol < subW; subCol++ {
-			lon := colToLon(subCol, subW)
-			if isLand(lon, lat) && rng.Float64() < dotDensity {
-				sub[subRow][subCol] = true
-			}
+	for _, r := range coastlines {
+		n := len(r)
+		for i := 0; i < n; i++ {
+			p1, p2 := r[i], r[(i+1)%n]
+			plotLine(sub, subW, subH, p1.lat, p1.lon, p2.lat, p2.lon)
 		}
 	}
 
@@ -96,6 +88,70 @@ func Generate(width, height int) *Grid {
 		}
 	}
 	return g
+}
+
+// subPixelCoord converts a lat/lon pair into continuous (fractional)
+// sub-pixel coordinates for a buffer of the given sub-pixel dimensions.
+// Out-of-range latitudes/longitudes are clamped.
+func subPixelCoord(lat, lon float64, subW, subH int) (x, y float64) {
+	if lon < -180 {
+		lon = -180
+	}
+	if lon > 180 {
+		lon = 180
+	}
+	if lat < -90 {
+		lat = -90
+	}
+	if lat > 90 {
+		lat = 90
+	}
+	x = (lon + 180) / 360 * float64(subW)
+	y = (90 - lat) / 180 * float64(subH)
+	return x, y
+}
+
+// plotPoint sets the sub-pixel nearest to (lat, lon).
+func plotPoint(sub [][]bool, subW, subH int, lat, lon float64) {
+	x, y := subPixelCoord(lat, lon, subW, subH)
+	col, row := int(x), int(y)
+	if col >= subW {
+		col = subW - 1
+	}
+	if row >= subH {
+		row = subH - 1
+	}
+	if col < 0 {
+		col = 0
+	}
+	if row < 0 {
+		row = 0
+	}
+	sub[row][col] = true
+}
+
+// plotLine draws a segment between two lat/lon points by interpolating a
+// number of steps sized from the buffer's current sub-pixel resolution, so
+// the line looks continuous (no gaps wider than ~1 sub-pixel) regardless of
+// terminal size. This is the primitive coastline drawing uses today, and
+// the one a future traceroute hop-path overlay would reuse to connect hops.
+func plotLine(sub [][]bool, subW, subH int, lat1, lon1, lat2, lon2 float64) {
+	x1, y1 := subPixelCoord(lat1, lon1, subW, subH)
+	x2, y2 := subPixelCoord(lat2, lon2, subW, subH)
+
+	dx, dy := x2-x1, y2-y1
+	if math.Abs(dx) > float64(subW)/2 {
+		return // likely an antimeridian wrap-around edge; skip rather than streak across the map
+	}
+
+	steps := int(math.Ceil(math.Max(math.Abs(dx), math.Abs(dy))))
+	if steps < 1 {
+		steps = 1
+	}
+	for i := 0; i <= steps; i++ {
+		t := float64(i) / float64(steps)
+		plotPoint(sub, subW, subH, lat1+(lat2-lat1)*t, lon1+(lon2-lon1)*t)
+	}
 }
 
 // Project converts a lat/lon pair into a (col, row) cell on a grid of the
@@ -130,51 +186,4 @@ func Project(lat, lon float64, width, height int) (col, row int) {
 		row = 0
 	}
 	return col, row
-}
-
-func colToLon(col, width int) float64 {
-	return (float64(col)+0.5)/float64(width)*360 - 180
-}
-
-func rowToLat(row, height int) float64 {
-	return 90 - (float64(row)+0.5)/float64(height)*180
-}
-
-func isLand(lon, lat float64) bool {
-	for _, lp := range landPolygons {
-		if lp.contains(lon, lat) {
-			return true
-		}
-	}
-	return false
-}
-
-// contains reports whether (lon, lat) falls inside this landmass: inside
-// its outer ring and outside every hole.
-func (lp landPolygon) contains(lon, lat float64) bool {
-	if len(lp.rings) == 0 || !lp.rings[0].contains(lon, lat) {
-		return false
-	}
-	for _, hole := range lp.rings[1:] {
-		if hole.contains(lon, lat) {
-			return false
-		}
-	}
-	return true
-}
-
-// contains implements a standard ray-casting point-in-polygon test.
-func (r ring) contains(lon, lat float64) bool {
-	inside := false
-	n := len(r)
-	for i, j := 0, n-1; i < n; j, i = i, i+1 {
-		pi, pj := r[i], r[j]
-		if (pi.lat > lat) != (pj.lat > lat) {
-			lonAtLat := (pj.lon-pi.lon)*(lat-pi.lat)/(pj.lat-pi.lat) + pi.lon
-			if lon < lonAtLat {
-				inside = !inside
-			}
-		}
-	}
-	return inside
 }

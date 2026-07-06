@@ -37,6 +37,9 @@ Or build from source:
 ```bash
 git clone https://github.com/vergissberlin/pingorb.git
 cd pingorb
+```
+
+```bash
 go build -o pingorb ./cmd/pingorb
 ```
 
@@ -143,10 +146,13 @@ servers:
   runs one continuous pinger per server in the background; results are
   aggregated into thread-safe stats snapshots the dashboard polls twice a
   second.
-- **The map** — a deliberately coarse polygon approximation of the
-  continents, rasterized into a stippled character grid at whatever size
-  fits your terminal. It's built for recognizability at low resolution, not
-  survey-accurate coastlines.
+- **The map** — coastlines (from [Natural Earth](https://www.naturalearthdata.com)'s
+  public-domain 1:110m land data) are plotted as line segments onto a Unicode
+  Braille canvas, the same technique used by
+  [satnogs-monitor](https://github.com/wose/satnogs-monitor): each terminal
+  cell packs a 2x4 grid of sub-pixels, giving 8x the resolution of a plain
+  "one dot per character" map. Only the coastlines are drawn, not filled
+  landmasses, so it stays crisp at any terminal size.
 - **The dashboard** — built with [Bubble Tea](https://github.com/charmbracelet/bubbletea)
   and [Lip Gloss](https://github.com/charmbracelet/lipgloss).
 
