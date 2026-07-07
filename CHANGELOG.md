@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/vergissberlin/pingorb/compare/v0.2.0...v0.3.0) (2026-07-07)
+
+
+### Features
+
+* **styles.go:** introduce fadeStyle for enhanced visual feedback on status updates ([242fe42](https://github.com/vergissberlin/pingorb/commit/242fe427b352c6ffc48a5388e531d349ff362efd))
+
 ## [0.2.0](https://github.com/vergissberlin/pingorb/compare/v0.1.0...v0.2.0) (2026-07-06)
 
 
