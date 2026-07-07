@@ -1,53 +1,33 @@
-# Example fleet spanning every populated continent, so pingorb's world map
-# has something to look at on the first run.
-#
-# The "pool-*" entries use NTP Pool (https://www.ntppool.org) regional
-# zones: those hostnames are round-robin DNS that only ever resolve to
-# volunteer time servers physically located in that region, which makes
-# them a genuinely region-accurate host to ping without needing your own
-# infrastructure everywhere yet. The other two are well-known public DNS
-# resolvers (anycast, so treat their coordinates as an illustrative anchor
-# rather than "the" server answering your ping).
-#
-# Try it with:
-#   pingorb --config examples/servers.yaml
-#
-# These are third-party/volunteer infrastructure outside our control, so
-# don't be surprised if one shows "down" occasionally (some pool members
-# don't answer ICMP at all) - that's realistic behavior, not a bug.
-#
-# Once you like what you see, replace these with `pingorb add` and your
-# own hosts.
 servers:
-  - name: pool-europe
-    host: 0.europe.pool.ntp.org
-    lat: 50.0
-    lon: 10.0
-  - name: pool-north-america
-    host: 0.north-america.pool.ntp.org
-    lat: 40.0
-    lon: -100.0
-  - name: pool-south-america
-    host: 0.south-america.pool.ntp.org
-    lat: -15.0
-    lon: -60.0
-  - name: pool-asia
-    host: 0.asia.pool.ntp.org
-    lat: 34.0
-    lon: 100.0
-  - name: pool-africa
-    host: 0.africa.pool.ntp.org
-    lat: 2.0
-    lon: 20.0
-  - name: pool-oceania
-    host: 0.oceania.pool.ntp.org
-    lat: -25.0
-    lon: 135.0
-  - name: cloudflare-dns
-    host: 1.1.1.1
-    lat: 37.7749
-    lon: -122.4194
-  - name: quad9-dns
-    host: 9.9.9.9
-    lat: 47.3769
-    lon: 8.5417
+    - name: pool-europe
+      host: 0.europe.pool.ntp.org
+      lat: 50
+      lon: 10
+    - name: pool-north-america
+      host: 0.north-america.pool.ntp.org
+      lat: 40
+      lon: -100
+    - name: pool-south-america
+      host: 0.south-america.pool.ntp.org
+      lat: -12
+      lon: -60
+    - name: pool-asia
+      host: 0.asia.pool.ntp.org
+      lat: 34
+      lon: 100
+    - name: pool-africa
+      host: 0.africa.pool.ntp.org
+      lat: 2.6
+      lon: 21
+    - name: pool-oceania
+      host: 0.oceania.pool.ntp.org
+      lat: -25
+      lon: 135
+    - name: cloudflare-dns
+      host: 1.1.1.1
+      lat: 37.7749
+      lon: -122.4194
+    - name: quad9-dns
+      host: 9.9.9.9
+      lat: 47.3769
+      lon: 8.5417

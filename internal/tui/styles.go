@@ -61,3 +61,18 @@ func statusStyle(alive bool, rttMS float64) lipgloss.Style {
 		return okStyle
 	}
 }
+
+// fadeStyle is statusStyle, but with its color freshly lightened toward
+// white: t=0 is a bright flash for data that just arrived, t=1 is fully
+// settled into the normal status color. Used so updates are visible
+// without a jarring on/off blink.
+func fadeStyle(alive bool, rttMS float64, t float64) lipgloss.Style {
+	base := statusStyle(alive, rttMS)
+	if t < 0 {
+		t = 0
+	} else if t > 1 {
+		t = 1
+	}
+	color := base.GetForeground()
+	return base.Foreground(lipgloss.Lighten(color, 1-t))
+}

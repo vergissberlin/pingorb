@@ -18,11 +18,11 @@ import (
 
 const tickInterval = 500 * time.Millisecond
 
-// flashWindow is how long a server's dot/marker gets a subtle underline
-// after a fresh ping reply comes in, so updates are visible even though the
-// dashboard otherwise looks static between pings - without being a jarring
-// blink.
-const flashWindow = 700 * time.Millisecond
+// flashWindow is how long a server's dot/marker takes to fade from a
+// bright flash back to its normal status color after a fresh ping reply
+// comes in, so updates are visible even though the dashboard otherwise
+// looks static between pings.
+const flashWindow = 1 * time.Second
 
 type mode int
 
@@ -286,8 +286,8 @@ func (m Model) renderList() string {
 			rttMS := float64(st.LastRTT) / float64(time.Millisecond)
 			style := statusStyle(st.Alive, rttMS)
 			dotStyle := style
-			if time.Since(st.Updated) < flashWindow {
-				dotStyle = style.Underline(true) // subtle nudge on fresh data
+			if elapsed := time.Since(st.Updated); elapsed < flashWindow {
+				dotStyle = fadeStyle(st.Alive, rttMS, float64(elapsed)/float64(flashWindow))
 			}
 			dot = dotStyle.Render("●")
 			if st.Alive {
@@ -331,9 +331,10 @@ func (m Model) renderMap() string {
 		col, row := worldmap.Project(s.Lat, s.Lon, grid.Width, grid.Height)
 		style := dimStyle
 		if st, ok := m.stats[s.Name]; ok {
-			style = statusStyle(st.Alive, float64(st.LastRTT)/float64(time.Millisecond))
-			if time.Since(st.Updated) < flashWindow {
-				style = style.Underline(true) // subtle nudge on fresh data
+			rttMS := float64(st.LastRTT) / float64(time.Millisecond)
+			style = statusStyle(st.Alive, rttMS)
+			if elapsed := time.Since(st.Updated); elapsed < flashWindow {
+				style = fadeStyle(st.Alive, rttMS, float64(elapsed)/float64(flashWindow))
 			}
 		}
 		markers[[2]int{row, col}] = marker{style: style}

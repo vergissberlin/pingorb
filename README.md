@@ -1,4 +1,4 @@
-# pingorb
+# 🌍 pingorb
 
 Live ping status for your servers, plotted on a terminal world map.
 
@@ -6,6 +6,8 @@ Live ping status for your servers, plotted on a terminal world map.
 health as colored markers over an ASCII world map, right in your terminal.
 Servers are kept in a simple YAML config file, which you can manage either
 from the CLI (`pingorb add`) or interactively from within the dashboard.
+
+![Screenhot pingorb](./docs/screenshot.png)
 
 ## Features
 
